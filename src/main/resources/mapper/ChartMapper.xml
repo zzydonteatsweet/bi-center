@@ -2,12 +2,12 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="generator.mapper.ChartMapper">
+<mapper namespace="com.yupi.springbootinit.mapper.ChartMapper">
 
-    <resultMap id="BaseResultMap" type="generator.domain.Chart">
+    <resultMap id="BaseResultMap" type="com.yupi.springbootinit.model.entity.Chart">
             <id property="id" column="id" jdbcType="BIGINT"/>
             <result property="goal" column="goal" jdbcType="VARCHAR"/>
-            <result property="chartData" column="chartData" jdbcType="VARCHAR"/>
+            <result property="name" column="name" jdbcType="VARCHAR"/>
             <result property="chartType" column="chartType" jdbcType="VARCHAR"/>
             <result property="genChart" column="genChart" jdbcType="VARCHAR"/>
             <result property="genResult" column="genResult" jdbcType="VARCHAR"/>
@@ -23,4 +23,26 @@
         userId,createTime,updateTime,
         isDelete
     </sql>
+<!--    <select id="queryChartData" parameterType="string" resultType="map">-->
+<!--        ${querySql}-->
+<!--    </select>-->
+
+    <update id="createTable">
+        create table ${tableName} (
+            <foreach collection="columns" item="column" separator=",">
+                ${column.name} ${column.type}
+            </foreach>
+        );
+    </update>
+
+    <insert id="insertToChart">
+        insert into ${tableName}
+        <foreach collection="columnName" item="column" separator="," open="(" close=")">
+            ${column}
+        </foreach>
+        values
+        <foreach collection="values" item="value" separator="," open="(" close=")">
+            ${value}
+        </foreach>
+    </insert>
 </mapper>

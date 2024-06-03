@@ -1,5 +1,6 @@
 package com.yupi.springbootinit.controller;
 
+import cn.hutool.core.io.FileUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.Gson;
@@ -9,26 +10,39 @@ import com.yupi.springbootinit.common.DeleteRequest;
 import com.yupi.springbootinit.common.ErrorCode;
 import com.yupi.springbootinit.common.ResultUtils;
 import com.yupi.springbootinit.constant.CommonConstant;
+import com.yupi.springbootinit.constant.FileConstant;
 import com.yupi.springbootinit.constant.UserConstant;
 import com.yupi.springbootinit.exception.BusinessException;
 import com.yupi.springbootinit.exception.ThrowUtils;
-import com.yupi.springbootinit.model.dto.chart.ChartAddRequest;
-import com.yupi.springbootinit.model.dto.chart.ChartEditRequest;
-import com.yupi.springbootinit.model.dto.chart.ChartQueryRequest;
-import com.yupi.springbootinit.model.dto.chart.ChartUpdateRequest;
+import com.yupi.springbootinit.manager.AiManager;
+import com.yupi.springbootinit.manager.CosManager;
+import com.yupi.springbootinit.mapper.ChartMapper;
+import com.yupi.springbootinit.model.dto.chart.*;
+import com.yupi.springbootinit.model.dto.file.UploadFileRequest;
 import com.yupi.springbootinit.model.entity.Chart;
 import com.yupi.springbootinit.model.entity.User;
+import com.yupi.springbootinit.model.enums.FileUploadBizEnum;
+import com.yupi.springbootinit.model.vo.BiResponse;
 import com.yupi.springbootinit.service.ChartService;
 import com.yupi.springbootinit.service.UserService;
+import com.yupi.springbootinit.utils.ChartUtils;
+import com.yupi.springbootinit.utils.ExcelUtils;
 import com.yupi.springbootinit.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -47,6 +61,18 @@ public class ChartController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    AiManager aiManager;
+
+    @Resource
+    private CosManager cosManager;
+
+    @Resource
+    private ChartMapper chartMapper;
+
+    @Resource
+    private ChartUtils chartUtils;
 
     private final static Gson GSON = new Gson();
 
@@ -137,6 +163,138 @@ public class ChartController {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
         return ResultUtils.success(chart);
+    }
+
+
+    /**
+     * 上传文件
+     * @param multipartFile
+     * @param uploadFileRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/upload")
+    public BaseResponse<BiResponse> uploadXlsx(@RequestPart("file") MultipartFile multipartFile,
+                                           GenChartByAiRequest uploadFileRequest,
+                                               HttpServletRequest request) {
+        String name = uploadFileRequest.getName();
+        String goal = uploadFileRequest.getGoal();
+        String chartType = uploadFileRequest.getChartType();
+
+        ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR, "目标为空");
+        ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length()>100
+                ,ErrorCode.PARAMS_ERROR, "名字为空");
+
+        long fileSize = multipartFile.getSize();
+        String fileName = multipartFile.getOriginalFilename();
+
+        final Long ONE_MB = 1024 * 1024L;
+        ThrowUtils.throwIf(fileSize > ONE_MB, ErrorCode.PARAMS_ERROR);
+
+        String sufix = FileUtil.getSuffix(fileName);
+        final List<String> validSufixList = Arrays.asList("png", "xlsx", "csv", "webp", "jpeg");
+
+        ThrowUtils.throwIf(!validSufixList.contains(sufix), ErrorCode.PARAMS_ERROR);
+
+        StringBuilder userInput = new StringBuilder();
+        userInput.append("你是一个数据分析师，接下来我会给你分析目标和原始数据，请告诉我分析结论").append("\n");
+        String userGoal = goal;
+        if(StringUtils.isNotBlank(chartType)) {
+            userGoal += ",请使用"+chartType+"进行分析";
+        }
+
+        userInput.append("分析目标: ").append(userGoal).append("\n");
+        String data = ExcelUtils.excel2Csv(multipartFile);
+        userInput.append("原始数据: ").append(data).append("\n");
+
+        //  人数每一行都有\n隔开
+//        System.out.println(data);
+        User loginUser = userService.getLoginUser(request);
+
+        long biModeId = 1659171950288818178L;
+
+        String res = aiManager.doChat(biModeId, userInput.toString());
+//        System.out.println("res is \n");
+//        System.out.println(res);
+        String splits[] = StringUtils.split(res, "【【【【【");
+//        System.out.println("splits is \n");
+        for(String t : splits) {
+            System.out.println(t);
+        }
+        if(splits.length < 2) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "AI 生成错误");
+        }
+
+        String genChart = splits[0].trim();
+        String genResult = splits[1].trim();
+
+        Chart chart = new Chart();
+        chart.setName(name);
+        chart.setGoal(goal);
+        chart.setChartType(chartType);
+        chart.setGenChart(genChart);
+        chart.setGenResult(genResult);
+        chart.setUserId(loginUser.getId());
+        chart.setCreateTime(new Date());
+        chart.setUpdateTime(new Date());
+
+        boolean saveResult = chartService.save(chart);
+        ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败");
+
+        boolean saveDataResult = chartUtils.saveData(data, chart.getId());
+        ThrowUtils.throwIf(!saveDataResult, ErrorCode.SYSTEM_ERROR, "数据保存数据库失败");
+
+        BiResponse biResponse = new BiResponse();
+        biResponse.setGenChart(genChart);
+        biResponse.setGenResult(genResult);
+        biResponse.setChartId(chart.getId());
+
+        return ResultUtils.success(biResponse);
+//        // 文件目录：根据业务、用户来划分
+//        String uuid = RandomStringUtils.randomAlphanumeric(8);
+//        String filename = uuid + "-" + multipartFile.getOriginalFilename();
+//        String filepath = String.format("/%s/%s/%s", name, loginUser.getId(), filename);
+//        File file = null;
+//        try {
+//            // 上传文件
+//            file = File.createTempFile(filepath, null);
+//            multipartFile.transferTo(file);
+//            cosManager.putObject(filepath, file);
+//            // 返回可访问地址
+//            return ResultUtils.success(FileConstant.COS_HOST + filepath);
+//        } catch (Exception e) {
+//            log.error("file upload error, filepath = " + filepath, e);
+//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
+//        } finally {
+//            if (file != null) {
+//                // 删除临时文件
+//                boolean delete = file.delete();
+//                if (!delete) {
+//                    log.error("file delete error, filepath = {}", filepath);
+//                }
+//            }
+//        }
+    }
+
+    /**
+     * 验证文件
+     * @param multipartFile
+     * @param fileUploadBizEnum
+     */
+    private void validFile(MultipartFile multipartFile, FileUploadBizEnum fileUploadBizEnum) {
+        // 文件大小
+        long fileSize = multipartFile.getSize();
+        // 文件后缀
+        String fileSuffix = FileUtil.getSuffix(multipartFile.getOriginalFilename());
+        final long ONE_M = 1024 * 1024L;
+        if (FileUploadBizEnum.USER_AVATAR.equals(fileUploadBizEnum)) {
+            if (fileSize > ONE_M) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件大小不能超过 1M");
+            }
+            if (!Arrays.asList("jpeg", "jpg", "svg", "png", "webp").contains(fileSuffix)) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件类型错误");
+            }
+        }
     }
 
     /**

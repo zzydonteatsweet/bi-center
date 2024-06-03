@@ -10,49 +10,47 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 图表信息表
- * @TableName chart
+ * 用户
+ * @TableName user
  */
-@TableName(value ="chart")
+@TableName(value ="user")
 @Data
-public class Chart implements Serializable {
+public class User implements Serializable {
     /**
      * id
      */
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
-    @TableField(value = "name")
-    private String name;
     /**
-     * 分析目标
+     * 账号
      */
-    @TableField(value = "goal")
-    private String goal;
+    @TableField(value = "userAccount")
+    private String userAccount;
 
     /**
-     * 图表类型
+     * 密码
      */
-    @TableField(value = "chartType")
-    private String chartType;
+    @TableField(value = "userPassword")
+    private String userPassword;
 
     /**
-     * 生成的图表数据
+     * 用户昵称
      */
-    @TableField(value = "genChart")
-    private String genChart;
+    @TableField(value = "userName")
+    private String userName;
 
     /**
-     * 生成的分析结论
+     * 用户头像
      */
-    @TableField(value = "genResult")
-    private String genResult;
+    @TableField(value = "userAvatar")
+    private String userAvatar;
 
     /**
-     * 创建用户 id
+     * 用户角色：user/admin
      */
-    @TableField(value = "userId")
-    private Long userId;
+    @TableField(value = "userRole")
+    private String userRole;
 
     /**
      * 创建时间

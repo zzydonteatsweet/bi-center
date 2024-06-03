@@ -2,6 +2,10 @@ package com.yupi.springbootinit.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.yupi.springbootinit.model.entity.Chart;
+import org.apache.ibatis.annotations.MapKey;
+
+import java.util.List;
+import java.util.Map;
 
 /**
 * @author T041018
@@ -10,6 +14,10 @@ import com.yupi.springbootinit.model.entity.Chart;
 * @Entity generator.domain.Chart
 */
 public interface ChartMapper extends BaseMapper<Chart> {
+
+    void createTable(Map<String, Object> parameters);
+
+    void insertToChart(Map<String,Object> parameters);
 
 }
 
