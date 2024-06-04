@@ -16,6 +16,7 @@ import com.yupi.springbootinit.exception.BusinessException;
 import com.yupi.springbootinit.exception.ThrowUtils;
 import com.yupi.springbootinit.manager.AiManager;
 import com.yupi.springbootinit.manager.CosManager;
+import com.yupi.springbootinit.manager.RedisLimiterManager;
 import com.yupi.springbootinit.mapper.ChartMapper;
 import com.yupi.springbootinit.model.dto.chart.*;
 import com.yupi.springbootinit.model.dto.file.UploadFileRequest;
@@ -73,6 +74,9 @@ public class ChartController {
 
     @Resource
     private ChartUtils chartUtils;
+
+    @Resource
+    private RedisLimiterManager redisLimiterManager;
 
     private final static Gson GSON = new Gson();
 
@@ -210,6 +214,8 @@ public class ChartController {
         //  人数每一行都有\n隔开
 //        System.out.println(data);
         User loginUser = userService.getLoginUser(request);
+
+        redisLimiterManager.doRateLimit("genChartByAi" + loginUser.getId().toString());
 
         long biModeId = 1659171950288818178L;
 
