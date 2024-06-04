@@ -15,21 +15,10 @@ public class ChartMapperTest {
     private ChartMapper chartMapper;
 
     @Test
-    void queryChartData() {
-        if(chartMapper == null) {
-            System.out.println("Null");
-        }else System.out.println("Not Null");
-        String chartId = "2";
-        String querySql = String.format("select * from chart_%s", chartId);
-        List<Map<String,Object>> resultData = chartMapper.queryChartData(querySql);
-        System.out.println(resultData);
-    }
-
-    @Test
     void createTable() {
         Map<String, Object> parameters = new HashMap<>();
 
-        parameters.put("tableName", "test2");
+        parameters.put("tableName", "test3");
 
         List<Map<String,String>> columns = new ArrayList<>();
         for(int i = 1 ; i < 4 ; i ++) {
@@ -60,5 +49,23 @@ public class ChartMapperTest {
         parameters.put("values", values);
 
         chartMapper.insertToChart(parameters);
+    }
+
+    @Test
+    void queryData() {
+        Map<String,Object> parameters = new HashMap<>();
+        parameters.put("id", 1);
+        parameters.put("tableName", "chart_8");
+
+        List<Map<String,Object>> res = chartMapper.queryDataByRow(parameters);
+        System.out.println(res);
+    }
+
+    @Test
+    void queryAllData() {
+        String tableName = new String("chart_8");
+
+        List<Map<String,Object>> res = chartMapper.queryAllData(tableName);
+        System.out.println(res);
     }
 }

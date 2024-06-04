@@ -26,9 +26,17 @@
 <!--    <select id="queryChartData" parameterType="string" resultType="map">-->
 <!--        ${querySql}-->
 <!--    </select>-->
+    <select id="queryDataByRow" resultType="map">
+        select * from ${tableName} where id = ${id};
+    </select>
+
+    <select id="queryAllData" parameterType="string" resultType="map">
+        select * from ${tableName};
+    </select>
 
     <update id="createTable">
         create table ${tableName} (
+            id int primary key AUTO_INCREMENT,
             <foreach collection="columns" item="column" separator=",">
                 ${column.name} ${column.type}
             </foreach>

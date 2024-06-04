@@ -15,10 +15,13 @@ import java.util.Map;
 */
 public interface ChartMapper extends BaseMapper<Chart> {
 
+    List<Map<String,Object>> queryDataByRow(Map<String,Object> parameters);
+
     void createTable(Map<String, Object> parameters);
 
     void insertToChart(Map<String,Object> parameters);
 
+    List<Map<String,Object>> queryAllData(String tableName);
 }
 
 

@@ -250,30 +250,6 @@ public class ChartController {
         biResponse.setChartId(chart.getId());
 
         return ResultUtils.success(biResponse);
-//        // 文件目录：根据业务、用户来划分
-//        String uuid = RandomStringUtils.randomAlphanumeric(8);
-//        String filename = uuid + "-" + multipartFile.getOriginalFilename();
-//        String filepath = String.format("/%s/%s/%s", name, loginUser.getId(), filename);
-//        File file = null;
-//        try {
-//            // 上传文件
-//            file = File.createTempFile(filepath, null);
-//            multipartFile.transferTo(file);
-//            cosManager.putObject(filepath, file);
-//            // 返回可访问地址
-//            return ResultUtils.success(FileConstant.COS_HOST + filepath);
-//        } catch (Exception e) {
-//            log.error("file upload error, filepath = " + filepath, e);
-//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
-//        } finally {
-//            if (file != null) {
-//                // 删除临时文件
-//                boolean delete = file.delete();
-//                if (!delete) {
-//                    log.error("file delete error, filepath = {}", filepath);
-//                }
-//            }
-//        }
     }
 
     /**
