@@ -54,6 +54,12 @@ public class Chart implements Serializable {
     @TableField(value = "userId")
     private Long userId;
 
+    @TableField(value="status")
+    private String status;
+
+    @TableField(value="exeMessage")
+    private String exeMessage;
+
     /**
      * 创建时间
      */

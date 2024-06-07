@@ -196,7 +196,7 @@ public class ChartController {
         ThrowUtils.throwIf(fileSize > ONE_MB, ErrorCode.PARAMS_ERROR);
 
         String sufix = FileUtil.getSuffix(fileName);
-        final List<String> validSufixList = Arrays.asList("png", "xlsx", "csv", "webp", "jpeg");
+        final List<String> validSufixList = Arrays.asList( "xlsx", "csv");
 
         ThrowUtils.throwIf(!validSufixList.contains(sufix), ErrorCode.PARAMS_ERROR);
 
